@@ -198,11 +198,11 @@ void Category::Compare(const Category *category)  const
 }
 
 void LogChecker::AddRegexPattern(const std::string cat_name, const std::string &regex_pattern, size_t num_groups,
-                                 const std::set<int> &capturing_group_idx, const std::set<int> &key_group_idx)
+                                 const std::set<int> &value_group_idx, const std::set<int> &key_group_idx)
 {
   if(categories_.find(cat_name) == categories_.end())
     categories_.insert(std::make_pair(cat_name, new Category(cat_name)));
-  categories_[cat_name]->AddRegexPattern(regex_pattern, num_groups, capturing_group_idx, key_group_idx);
+  categories_[cat_name]->AddRegexPattern(regex_pattern, num_groups, value_group_idx, key_group_idx);
 }
 
 void LogChecker::TryMatchByRegex(const std::string &source)
