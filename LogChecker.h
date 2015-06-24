@@ -65,8 +65,16 @@ public:
   inline void AddCategory(Category *cat) {categories_.insert(std::make_pair(cat->name(), cat));}
   void LoadFromXML(const std::string &file_name);
   // Each captured group must have a value. The other groups captured then define the key.
-  // For instance, for an input with the format "id=XXX id2=YYY value=ZZZ" and the regex pattern id=(^[\s])* id2=(^[\s])* id3=(^[\s])*,
-  // the groups retrieved will be XXX, YYY and ZZZ.
+  // For instance, for an input with the format "id=XXX id2=YYY value=ZZZ" and the regex pattern (id=)([^\s]*)( id2=)([^\s]*)( value=)([^\s]*),
+  // the captured groups retrieved will be:
+  // Capturing group[0]: id=XXX id2=YYY value=ZZZ
+  // Capturing group[1]: id=
+  // Capturing group[2]: XXX
+  // Capturing group[3]:  id2=
+  // Capturing group[4]: YYY
+  // Capturing group[5]:  value=
+  // Capturing group[6]: ZZZ
+  // There fore to make XXX and YYY the key we have to set key_group_idx={2, 4} and to retrieve the value value_group_idx={6}
   void AddRegexPattern(const std::string cat_name, const std::string &regex_pattern, size_t num_groups,
                        const std::set<int> &value_group_idx, const std::set<int> &key_group_idx);
   void TryMatchByRegex(const std::string &source);
