@@ -6,4 +6,4 @@ The extracted lines are binned into 'categories'. Then for each category, the ma
 
 Motivation: I had some files to compare together in which even though the entries were mostly similarly, it appeared that the order in which they occured were different. Given the number of entries to compare together and the fact that the value for each entry was identified by a group of ids (or a compound key), I find that it is a nifty tool for that purpose.
 
-Usage: ./Logchecker <file1> <file2>
+Usage: `./Logchecker <file1> <file2>`
