@@ -44,7 +44,7 @@ public:
   int operator<(const Category &cat) const;
   // See LogChecker::AddRegexPattern
   void AddRegexPattern(const std::string &regex_pattern, size_t num_groups,
-                       const std::set<int> &capturing_group_idx, const std::set<int> &key_group_idx);
+                       const std::set<int> &value_group_idx, const std::set<int> &key_group_idx);
   void TryMatchByRegex(const std::string &source);
   void Compare(const Category *category)  const;
 };
