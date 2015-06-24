@@ -74,7 +74,7 @@ public:
   // Capturing group[4]: YYY
   // Capturing group[5]:  value=
   // Capturing group[6]: ZZZ
-  // There fore to make XXX and YYY the key we have to set key_group_idx={2, 4} and to retrieve the value value_group_idx={6}
+  // Therefore to make XXX and YYY the key we have to set key_group_idx={2, 4} and to retrieve the value value_group_idx={6}
   void AddRegexPattern(const std::string cat_name, const std::string &regex_pattern, size_t num_groups,
                        const std::set<int> &value_group_idx, const std::set<int> &key_group_idx);
   void TryMatchByRegex(const std::string &source);
