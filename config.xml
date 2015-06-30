@@ -10,7 +10,7 @@
         <regex num_groups="5" key_group_idx="1,2,3,4">TS VMP [^:]*:  ([0-9]*)[^[0-9]]*([0-9]*\.[0-9]*\.[0-9]*)\s([0-9]*)[^[0-9]]*([0-9]*)</regex>
     </category>
     <category name="Line result">
-        <!-- Match resultat départ TUILERIE:  P (double)MW		Q  =   (double)MVAR		S  =   (double)MVA 		I  =   (double)kA-->
+        <!-- Match resultat départ (string):  P (double)MW		Q  =   (double)MVAR		S  =   (double)MVA 		I  =   (double)kA-->
         <regex num_groups="9" value_group_idx="2,4,6,8" key_group_idx="1">resultat [^\s]* ([^:]*):[^P]*P ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)MW[^Q]*Q  =   ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)MVAR[^S]*S  =   ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)MVA[^I]*I  =   ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)kA</regex>
     </category>
 </config>
