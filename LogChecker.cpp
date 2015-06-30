@@ -42,7 +42,7 @@ LogChecker::~LogChecker()
 
 void LogChecker::LoadFromXML(const std::string &file_name)
 {
-  tinyxml2::XMLDocument doc(true, tinyxml2::COLLAPSE_WHITESPACE);
+  tinyxml2::XMLDocument doc(true, tinyxml2::PRESERVE_WHITESPACE);
   doc.LoadFile(file_name.c_str());
   tinyxml2::XMLElement* root = doc.RootElement();
   for(const tinyxml2::XMLElement* element = root->FirstChildElement(); element; element = element->NextSiblingElement())
@@ -111,12 +111,11 @@ void Category::AddRegexPattern(const std::string &regex_pattern, size_t num_grou
 
 void Category::TryMatchByRegex(const std::string &source)
 {
+  bool found_match = false;
   for(std::set<RegexPattern>::const_iterator it = regex_patterns_.begin(); it != regex_patterns_.end(); ++it)
   {
     size_t num_groups = (*it).num_groups;
     regex_t *regex = (*it).regex;
-    const std::set<int> &value_group_idx = (*it).value_group_idx;
-    const std::set<int> &key_group_idx = (*it).key_group_idx;
     const char *cursor = source.c_str();
     regmatch_t groups[num_groups];
     if (regexec(regex, cursor, num_groups, groups, 0))
@@ -124,10 +123,14 @@ void Category::TryMatchByRegex(const std::string &source)
       // No more matches
       continue;
     }
+    ++num_matches_;
+    found_match = true;
 
     // Retrieve the capturing groups for the regex pattern (*it)
     std::string key;
     std::string value;
+    const std::set<int> &value_group_idx = (*it).value_group_idx;
+    const std::set<int> &key_group_idx = (*it).key_group_idx;
 
     int num_keys_found = 0, num_values_found = 0;
     for (int group_idx = 0; group_idx < num_groups; ++group_idx)
@@ -155,45 +158,60 @@ void Category::TryMatchByRegex(const std::string &source)
       }
       //printf("Capturing group[%i]: %s\n", group_idx, group_value);
     }
-    printf("%s->%s\n", key.c_str(), value.c_str());
+    //printf("%s->%s\n", key.c_str(), value.c_str());
+
     // Append the groups found to matches_
-    matches_.insert(std::make_pair(key, value));
+    MatchMap::iterator it = matches_.find(key);
+    if(it == matches_.end())
+    {
+      matches_.insert(std::make_pair(key, std::multiset<std::string>()));
+      it = matches_.find(key);
+    }
+    it->second.insert(value);
   }
+  if(!found_match && (source.find("PAOMT") != std::string::npos || source.find("PAGC") != std::string::npos) && name_ == "TM")
+    std::cout << source << std::endl;
 }
 
 void Category::Compare(const Category *category)  const
 {
-  std::cout << "There are " << category->matches_.size() << " matches found in the file to compare versus "
-      << matches_.size() << " in the reference file for the category " << name_ << std::endl;
-  for(std::map<std::string, std::string>::const_iterator it = category->matches_.begin(); it != category->matches_.end(); ++it)
+  std::cout << "There are " << category->num_matches_ << " matches found in the file to compare versus "
+      << num_matches_ << " in the reference file for the category " << name_ << std::endl;
+  for(MatchMap::const_iterator it = category->matches_.begin(); it != category->matches_.end(); ++it)
   {
     std::string key = it->first;
-    std::string value = it->second;
-    std::map<std::string, std::string>::const_iterator it_ref = matches_.find(key);
+    const ValueSet &values = it->second;
+    MatchMap::const_iterator it_ref = matches_.find(key);
     if(it_ref == matches_.end())
     {
-      std::cout << "The key " << key << " could not be found in the reference file\n";
+      std::cout << "The key " << key << " with value " << *values.begin() << " could not be found in the reference file\n";
       continue;
     }
-    std::string ref_value = matches_.find(key)->second;
-    if(value != ref_value)
-      std::cout << "The value for the key " << key << " differs in the two input files\n";
+    const ValueSet &ref_values = matches_.find(key)->second;
+    for(ValueSet::iterator it_val = values.begin(); it_val != values.end(); ++it_val)
+    {
+      if(ref_values.find(*it_val) == ref_values.end())
+        std::cout << "The value " << *it_val << " for the key " << key << " differs in the two input files\n";
+    }
   }
 
   // Symetrically check the equality of values with 'category' entries serving as the reference
-  for(std::map<std::string, std::string>::const_iterator it_ref = matches_.begin(); it_ref != matches_.end(); ++it_ref)
+  for(MatchMap::const_iterator it_ref = matches_.begin(); it_ref != matches_.end(); ++it_ref)
   {
     std::string key = it_ref->first;
-    std::string ref_value = it_ref->second;
-    std::map<std::string, std::string>::const_iterator it = category->matches_.find(key);
+    const ValueSet &values_ref = it_ref->second;
+    MatchMap::const_iterator it = category->matches_.find(key);
     if(it == category->matches_.end())
     {
-      std::cout << "The key " << key << " could not be found in the second file\n";
+      std::cout << "The key " << key << " with value " << *values_ref.begin() << " could not be found in the second file\n";
       continue;
     }
-    std::string value = category->matches_.find(key)->second;
-    if(value != ref_value)
-      std::cout << "The value for the key " << key << " differs in the two input files\n";
+    const ValueSet &values = category->matches_.find(key)->second;
+    for(ValueSet::iterator it_val = values_ref.begin(); it_val != values_ref.end(); ++it_val)
+    {
+      if(values.find(*it_val) == values.end())
+        std::cout << "The value " << *it_val << " for the key " << key << " differs in the two input files\n";
+    }
   }
 }
 
