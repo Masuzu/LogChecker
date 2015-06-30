@@ -2,10 +2,10 @@
 #define LOGCHECKER_H
 
 #include "tinyxml2.h"
-#include "RadixTree.h"
 #include <string>
 #include <set>
 #include <map>
+#include <multiset.h>
 #include <vector>
 #include <regex.h>
 
@@ -32,10 +32,14 @@ private:
   std::string name_;
   std::set<std::string> matched_names_;
   std::set<RegexPattern> regex_patterns_;
-  std::map<std::string, std::string> matches_;
+  typedef std::multiset<std::string> ValueSet;
+  typedef std::map<std::string, std::multiset<std::string> > MatchMap;
+  // Multiple entries may have the same key
+  MatchMap matches_;
+  int num_matches_;
 
 public:
-  explicit Category(const std::string &name) : name_(name) {}
+  explicit Category(const std::string &name) : name_(name), num_matches_(0) {}
   virtual ~Category();
   void AddMatchedName(const std::string &name) {matched_names_.insert(name);}
 
