@@ -8,19 +8,19 @@
 #include <sstream>
 
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(item);
-    }
-    return elems;
+  std::stringstream ss(s);
+  std::string item;
+  while (std::getline(ss, item, delim)) {
+    elems.push_back(item);
+  }
+  return elems;
 }
 
 
 std::vector<std::string> Split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    Split(s, delim, elems);
-    return elems;
+  std::vector<std::string> elems;
+  Split(s, delim, elems);
+  return elems;
 }
 
 Category::~Category()
@@ -39,6 +39,30 @@ LogChecker::~LogChecker()
   for(std::map<std::string, Category *>::const_iterator it = categories_.begin(); it != categories_.end(); ++it)
     delete it->second;
 }
+
+static void ReplaceAll(std::string& str, const std::string& from, const std::string& to)
+{
+  if(from.empty())
+    return;
+  size_t start_pos = 0;
+  while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+    str.replace(start_pos, from.length(), to);
+    start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+  }
+}
+
+static bool StartsWith(const std::string& s1, const std::string& s2) {
+  return s2.size() <= s1.size() && s1.compare(0, s2.size(), s2) == 0;
+}
+
+static bool EndsWith(const std::string s1, const std::string &s2) {
+  return s2.size() <= s1.size() && s1.compare(s1.size()-s2.size(), s2.size(), s2) == 0;
+}
+
+static std::string kIntPattern = "([-+]?[0-9]*)";
+static std::string kUintPattern = "([0-9]*)";
+static std::string kDoublePattern = "([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)";
+static std::string kStringPattern = "(.?*)";
 
 void LogChecker::LoadFromXML(const std::string &file_name)
 {
@@ -59,10 +83,83 @@ void LogChecker::LoadFromXML(const std::string &file_name)
         std::cout << "    " << category_name << ".match=" << match_string << std::endl;
         category->AddMatchedName(match_string);
       }
+      else if(strcmp(filter->Name(), "pattern") == 0)
+      {
+        std::string pattern = match_string;
+        std::cout << "    " << category_name << ".pattern=" << pattern.c_str() << std::endl;
+        //ReplaceAll(pattern, ".", "\\.");
+        std::string built_pattern;
+
+        std::set<int> value_group_idx;
+        std::set<int> key_group_idx;
+        int num_groups = 1;
+
+        bool skip = false;
+        while(!pattern.empty()) {
+          int idx = pattern.find("{{");
+          if(skip) {
+            skip = false;
+            built_pattern += ".?*";
+            if(idx == 0) {
+              std::cout << "A {{skip}} tag can't be followed directly by another tag\n";
+              exit(0);
+            }
+          }
+
+          // Parse the pattern, extract the tags and build the corresponding regex in 'built_pattern'
+          if(idx != std::string::npos) {
+            built_pattern += pattern.substr(0, idx);
+            pattern = pattern.substr(idx+2);
+            idx = pattern.find("}}");
+            std::string tag = pattern.substr(0, idx);
+            if(StartsWith(tag, "uint")) {
+              built_pattern += kUintPattern;
+              key_group_idx.insert(num_groups);
+              ++num_groups;
+            }
+            else if(StartsWith(tag, "int")) {
+              built_pattern += kIntPattern;
+              if(!EndsWith(tag, "value"))
+                key_group_idx.insert(num_groups);
+              else
+                value_group_idx.insert(num_groups);
+              ++num_groups;
+            }
+            else if(StartsWith(tag, "double")) {
+              built_pattern += kDoublePattern;
+              if(!EndsWith(tag, "value"))
+                key_group_idx.insert(num_groups);
+              else
+                value_group_idx.insert(num_groups);
+              num_groups += 2;
+            }
+            else if(tag == "skip_until_int") {
+              built_pattern += "[^[0-9]]*";
+            }
+            else if(tag == "skip")
+              skip = true;
+            else if(StartsWith(tag, "string")) {
+              built_pattern += kStringPattern;
+              if(!EndsWith(tag, "value"))
+                key_group_idx.insert(num_groups);
+              else
+                value_group_idx.insert(num_groups);
+              ++num_groups;
+            }
+            pattern = pattern.substr(idx+2);
+          }
+          else {
+            built_pattern += pattern;
+            break;
+          }
+        }
+
+        category->AddRegexPattern(built_pattern.c_str(), num_groups, value_group_idx, key_group_idx);
+      }
       else if(strcmp(filter->Name(), "regex") == 0)
       {
-        const char *match_string = filter->GetText();
         std::cout << "    " << category_name << ".regex=" << match_string << std::endl;
+
         if(!filter->Attribute("num_groups"))
         {
           std::cout << "    Missing attribute num_groups for element match\n";
@@ -169,8 +266,6 @@ void Category::TryMatchByRegex(const std::string &source)
     }
     it->second.insert(value);
   }
-  if(!found_match && (source.find("PAOMT") != std::string::npos || source.find("PAGC") != std::string::npos) && name_ == "TM")
-    std::cout << source << std::endl;
 }
 
 void Category::Compare(const Category *category)  const
