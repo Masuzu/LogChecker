@@ -29,8 +29,9 @@ int main(int argc, char *argv[])
   // Retrieve <keys> and <value> matching the pattern: resultat blahblahblah <key1 as string>: P <value1 as double> Q = <value2 as double>  S = <value3 as uint>  I = <value4 as double>
   __StdSet(int, value_group_idx, 2, 4, 6, 8);
   __StdSet(int, key_group_idx, 1);
-  test.AddRegexPattern("Test", "resultat [^\\s]* ([^:]*):[^P]*P ([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)MW[^Q]*Q  =   ([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)MVAR[^S]*S  =   ([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)MVA[^I]*I  =   ([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)kA",
-   9, value_group_idx, key_group_idx);
+  // test.AddRegexPattern("RegexTest", "resultat [^\\s]* ([^:]*):[^P]*P ([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)MW[^Q]*Q  =   ([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)MVAR[^S]*S  =   ([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)MVA[^I]*I  =   ([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)kA", 9, value_group_idx, key_group_idx);
+  // Same as above but using a user-friendlier pattern
+  test.AddPattern("PatternTest", "resultat {{skip}} {{string}}:{{skip}}P {{double:value}}MW{{skip}}Q  =   {{double:value}}MVAR{{skip}}S  =   {{double:value}}MVA{{skip}}I  =   {{double:value}}kA");
   cout << test.TryMatchByRegex("		-->  resultat départ TUILERIE:  P 1.38607MW		Q  =   0.217258MVAR		S  =   1.40299MVA 		I  =   0.0405009kA") << endl;
 
   LogChecker test1;
