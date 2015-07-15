@@ -49,7 +49,9 @@ public:
   // See LogChecker::AddRegexPattern
   void AddRegexPattern(const std::string &regex_pattern, size_t num_groups,
                        const std::set<int> &value_group_idx, const std::set<int> &key_group_idx);
-  void TryMatchByRegex(const std::string &source);
+  // See LogChecker::AddPattern
+  void AddPattern(const std::string &pattern);
+  bool TryMatchByRegex(const std::string &source);
   void Compare(const Category *category)  const;
 };
 
@@ -68,8 +70,11 @@ public:
 
   inline void AddCategory(Category *cat) {categories_.insert(std::make_pair(cat->name(), cat));}
   void LoadFromXML(const std::string &file_name);
-  // Each captured group must have a value. The other groups captured then define the key.
-  // For instance, for an input with the format "id=XXX id2=YYY value=ZZZ" and the regex pattern (id=)([^\s]*)( id2=)([^\s]*)( value=)([^\s]*),
+
+  // Each input to compare (passed as a string) is matched againt the categories registered for this LogChecker. A category is a collection of
+  // regular expressions which will be matched against the input. The capturing groups of each regular expression define either keys or values that
+  // characterize the input.
+  // For instance, given an input with the format "id=XXX id2=YYY value=ZZZ" and the regex (id=)([^\s]*)( id2=)([^\s]*)( value=)([^\s]*),
   // the captured groups retrieved will be:
   // Capturing group[0]: id=XXX id2=YYY value=ZZZ
   // Capturing group[1]: id=
@@ -78,10 +83,12 @@ public:
   // Capturing group[4]: YYY
   // Capturing group[5]:  value=
   // Capturing group[6]: ZZZ
-  // Therefore to make XXX and YYY the key we have to set key_group_idx={2, 4} and to retrieve the value value_group_idx={6}
-  void AddRegexPattern(const std::string cat_name, const std::string &regex_pattern, size_t num_groups,
+  // To let LogChecker know that XXX and YYY are the keys identifying the input and  that ZZZ is the associated value, we have to set
+  // key_group_idx={2, 4} and value_group_idx={6}
+  void AddRegexPattern(const std::string &cat_name, const std::string &regex_pattern, size_t num_groups,
                        const std::set<int> &value_group_idx, const std::set<int> &key_group_idx);
-  void TryMatchByRegex(const std::string &source);
+  void AddPattern(const std::string &cat_name, const std::string &pattern);
+  bool TryMatchByRegex(const std::string &source);
 
   void Compare(const LogChecker &checker);
 };
