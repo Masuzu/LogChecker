@@ -16,28 +16,10 @@ std::vector<std::string> &Split(const std::string &s, char delim, std::vector<st
   return elems;
 }
 
-
 std::vector<std::string> Split(const std::string &s, char delim) {
   std::vector<std::string> elems;
   Split(s, delim, elems);
   return elems;
-}
-
-Category::~Category()
-{
-  for(std::set<RegexPattern>::const_iterator it = regex_patterns_.begin(); it != regex_patterns_.end(); ++it)
-    regfree((*it).regex);
-}
-
-int Category::operator<(const Category &cat) const
-{
-  return strcmp(name_.c_str(), cat.name_.c_str());
-}
-
-LogChecker::~LogChecker()
-{
-  for(std::map<std::string, Category *>::const_iterator it = categories_.begin(); it != categories_.end(); ++it)
-    delete it->second;
 }
 
 static void ReplaceAll(std::string& str, const std::string& from, const std::string& to)
@@ -64,128 +46,15 @@ static std::string kUintPattern = "([0-9]*)";
 static std::string kDoublePattern = "([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)";
 static std::string kStringPattern = "(.?*)";
 
-void LogChecker::LoadFromXML(const std::string &file_name)
+Category::~Category()
 {
-  tinyxml2::XMLDocument doc(true, tinyxml2::PRESERVE_WHITESPACE);
-  doc.LoadFile(file_name.c_str());
-  tinyxml2::XMLElement* root = doc.RootElement();
-  for(const tinyxml2::XMLElement* element = root->FirstChildElement(); element; element = element->NextSiblingElement())
-  {
-    std::string category_name = element->Attribute("name");
-    std::cout << "Category name: " << category_name << std::endl;
-    Category *category = new Category(category_name);
-    categories_.insert(std::make_pair(category_name, category));
-    for(const tinyxml2::XMLElement* filter = element->FirstChildElement(); filter; filter = filter->NextSiblingElement())
-    {
-      const char *match_string = filter->GetText();
-      if(strcmp(filter->Name(), "match") == 0)
-      {
-        std::cout << "    " << category_name << ".match=" << match_string << std::endl;
-        category->AddMatchedName(match_string);
-      }
-      else if(strcmp(filter->Name(), "pattern") == 0)
-      {
-        std::string pattern = match_string;
-        std::cout << "    " << category_name << ".pattern=" << pattern.c_str() << std::endl;
-        //ReplaceAll(pattern, ".", "\\.");
-        std::string built_pattern;
+  for(std::set<RegexPattern>::const_iterator it = regex_patterns_.begin(); it != regex_patterns_.end(); ++it)
+    regfree((*it).regex);
+}
 
-        std::set<int> value_group_idx;
-        std::set<int> key_group_idx;
-        int num_groups = 1;
-
-        bool skip = false;
-        while(!pattern.empty()) {
-          int idx = pattern.find("{{");
-          if(skip) {
-            skip = false;
-            built_pattern += ".?*";
-            if(idx == 0) {
-              std::cout << "A {{skip}} tag can't be followed directly by another tag\n";
-              exit(0);
-            }
-          }
-
-          // Parse the pattern, extract the tags and build the corresponding regex in 'built_pattern'
-          if(idx != std::string::npos) {
-            built_pattern += pattern.substr(0, idx);
-            pattern = pattern.substr(idx+2);
-            idx = pattern.find("}}");
-            std::string tag = pattern.substr(0, idx);
-            if(StartsWith(tag, "uint")) {
-              built_pattern += kUintPattern;
-              key_group_idx.insert(num_groups);
-              ++num_groups;
-            }
-            else if(StartsWith(tag, "int")) {
-              built_pattern += kIntPattern;
-              if(!EndsWith(tag, "value"))
-                key_group_idx.insert(num_groups);
-              else
-                value_group_idx.insert(num_groups);
-              ++num_groups;
-            }
-            else if(StartsWith(tag, "double")) {
-              built_pattern += kDoublePattern;
-              if(!EndsWith(tag, "value"))
-                key_group_idx.insert(num_groups);
-              else
-                value_group_idx.insert(num_groups);
-              num_groups += 2;
-            }
-            else if(tag == "skip_until_int") {
-              built_pattern += "[^[0-9]]*";
-            }
-            else if(tag == "skip")
-              skip = true;
-            else if(StartsWith(tag, "string")) {
-              built_pattern += kStringPattern;
-              if(!EndsWith(tag, "value"))
-                key_group_idx.insert(num_groups);
-              else
-                value_group_idx.insert(num_groups);
-              ++num_groups;
-            }
-            pattern = pattern.substr(idx+2);
-          }
-          else {
-            built_pattern += pattern;
-            break;
-          }
-        }
-
-        category->AddRegexPattern(built_pattern.c_str(), num_groups, value_group_idx, key_group_idx);
-      }
-      else if(strcmp(filter->Name(), "regex") == 0)
-      {
-        std::cout << "    " << category_name << ".regex=" << match_string << std::endl;
-
-        if(!filter->Attribute("num_groups"))
-        {
-          std::cout << "    Missing attribute num_groups for element match\n";
-          continue;
-        }
-        std::set<int> value_group_idx;
-        if(filter->Attribute("value_group_idx"))
-        {
-          std::vector<std::string> tokens = Split(filter->Attribute("value_group_idx"), ',');
-          for(int i=0, len = tokens.size(); i<len; ++i)
-            value_group_idx.insert(atoi(tokens[i].c_str()));
-        }
-
-        std::set<int> key_group_idx;
-        if(filter->Attribute("key_group_idx"))
-        {
-          std::vector<std::string> tokens = Split(filter->Attribute("key_group_idx"), ',');
-          for(int i=0, len = tokens.size(); i<len; ++i)
-            key_group_idx.insert(atoi(tokens[i].c_str()));
-        }
-        category->AddRegexPattern(match_string, atoi(filter->Attribute("num_groups")), value_group_idx, key_group_idx);
-      }
-      else
-        std::cout << "    Unknown child element " << filter->Name() << std::endl;
-    }
-  }
+int Category::operator<(const Category &cat) const
+{
+  return strcmp(name_.c_str(), cat.name_.c_str());
 }
 
 void Category::AddRegexPattern(const std::string &regex_pattern, size_t num_groups,
@@ -206,7 +75,78 @@ void Category::AddRegexPattern(const std::string &regex_pattern, size_t num_grou
   regex_patterns_.insert(pattern);
 }
 
-void Category::TryMatchByRegex(const std::string &source)
+void Category::AddPattern(const std::string &pattern_)
+{
+  std::string pattern = pattern_;
+  std::string built_pattern;
+
+  std::set<int> value_group_idx;
+  std::set<int> key_group_idx;
+  int num_groups = 1;
+
+  bool skip = false;
+  while(!pattern.empty()) {
+    int idx = pattern.find("{{");
+    if(skip) {
+      skip = false;
+      built_pattern += ".?*";
+      if(idx == 0) {
+        std::cout << "A {{skip}} tag can't be followed directly by another tag\n";
+        exit(0);
+      }
+    }
+
+    // Parse the pattern, extract the tags and build the corresponding regex in 'built_pattern'
+    if(idx != std::string::npos) {
+      built_pattern += pattern.substr(0, idx);
+      pattern = pattern.substr(idx+2);
+      idx = pattern.find("}}");
+      std::string tag = pattern.substr(0, idx);
+      if(StartsWith(tag, "uint")) {
+        built_pattern += kUintPattern;
+        key_group_idx.insert(num_groups);
+        ++num_groups;
+      }
+      else if(StartsWith(tag, "int")) {
+        built_pattern += kIntPattern;
+        if(!EndsWith(tag, "value"))
+          key_group_idx.insert(num_groups);
+        else
+          value_group_idx.insert(num_groups);
+        ++num_groups;
+      }
+      else if(StartsWith(tag, "double")) {
+        built_pattern += kDoublePattern;
+        if(!EndsWith(tag, "value"))
+          key_group_idx.insert(num_groups);
+        else
+          value_group_idx.insert(num_groups);
+        num_groups += 2;
+      }
+      else if(tag == "skip_until_int") {
+        built_pattern += "[^[0-9]]*";
+      }
+      else if(tag == "skip")
+        skip = true;
+      else if(StartsWith(tag, "string")) {
+        built_pattern += kStringPattern;
+        if(!EndsWith(tag, "value"))
+          key_group_idx.insert(num_groups);
+        else
+          value_group_idx.insert(num_groups);
+        ++num_groups;
+      }
+      pattern = pattern.substr(idx+2);
+    }
+    else {
+      built_pattern += pattern;
+      break;
+    }
+  }
+  AddRegexPattern(built_pattern, num_groups, value_group_idx, key_group_idx);
+}
+
+bool Category::TryMatchByRegex(const std::string &source)
 {
   bool found_match = false;
   for(std::set<RegexPattern>::const_iterator it = regex_patterns_.begin(); it != regex_patterns_.end(); ++it)
@@ -266,6 +206,7 @@ void Category::TryMatchByRegex(const std::string &source)
     }
     it->second.insert(value);
   }
+  return found_match;
 }
 
 void Category::Compare(const Category *category)  const
@@ -310,7 +251,69 @@ void Category::Compare(const Category *category)  const
   }
 }
 
-void LogChecker::AddRegexPattern(const std::string cat_name, const std::string &regex_pattern, size_t num_groups,
+LogChecker::~LogChecker()
+{
+  for(std::map<std::string, Category *>::const_iterator it = categories_.begin(); it != categories_.end(); ++it)
+    delete it->second;
+}
+
+void LogChecker::LoadFromXML(const std::string &file_name)
+{
+  tinyxml2::XMLDocument doc(true, tinyxml2::PRESERVE_WHITESPACE);
+  doc.LoadFile(file_name.c_str());
+  tinyxml2::XMLElement* root = doc.RootElement();
+  for(const tinyxml2::XMLElement* element = root->FirstChildElement(); element; element = element->NextSiblingElement())
+  {
+    std::string category_name = element->Attribute("name");
+    std::cout << "Category name: " << category_name << std::endl;
+    Category *category = new Category(category_name);
+    categories_.insert(std::make_pair(category_name, category));
+    for(const tinyxml2::XMLElement* filter = element->FirstChildElement(); filter; filter = filter->NextSiblingElement())
+    {
+      const char *match_string = filter->GetText();
+      if(strcmp(filter->Name(), "match") == 0)
+      {
+        std::cout << "    " << category_name << ".match=" << match_string << std::endl;
+        category->AddMatchedName(match_string);
+      }
+      else if(strcmp(filter->Name(), "pattern") == 0)
+      {
+        std::cout << "    " << category_name << ".pattern=" << match_string << std::endl;
+        category->AddPattern(match_string);
+      }
+      else if(strcmp(filter->Name(), "regex") == 0)
+      {
+        std::cout << "    " << category_name << ".regex=" << match_string << std::endl;
+
+        if(!filter->Attribute("num_groups"))
+        {
+          std::cout << "    Missing attribute num_groups for element match\n";
+          continue;
+        }
+        std::set<int> value_group_idx;
+        if(filter->Attribute("value_group_idx"))
+        {
+          std::vector<std::string> tokens = Split(filter->Attribute("value_group_idx"), ',');
+          for(int i=0, len = tokens.size(); i<len; ++i)
+            value_group_idx.insert(atoi(tokens[i].c_str()));
+        }
+
+        std::set<int> key_group_idx;
+        if(filter->Attribute("key_group_idx"))
+        {
+          std::vector<std::string> tokens = Split(filter->Attribute("key_group_idx"), ',');
+          for(int i=0, len = tokens.size(); i<len; ++i)
+            key_group_idx.insert(atoi(tokens[i].c_str()));
+        }
+        category->AddRegexPattern(match_string, atoi(filter->Attribute("num_groups")), value_group_idx, key_group_idx);
+      }
+      else
+        std::cout << "    Unknown child element " << filter->Name() << std::endl;
+    }
+  }
+}
+
+void LogChecker::AddRegexPattern(const std::string &cat_name, const std::string &regex_pattern, size_t num_groups,
                                  const std::set<int> &value_group_idx, const std::set<int> &key_group_idx)
 {
   if(categories_.find(cat_name) == categories_.end())
@@ -318,10 +321,19 @@ void LogChecker::AddRegexPattern(const std::string cat_name, const std::string &
   categories_[cat_name]->AddRegexPattern(regex_pattern, num_groups, value_group_idx, key_group_idx);
 }
 
-void LogChecker::TryMatchByRegex(const std::string &source)
+void LogChecker::AddPattern(const std::string &cat_name, const std::string &pattern)
 {
+  if(categories_.find(cat_name) == categories_.end())
+    categories_.insert(std::make_pair(cat_name, new Category(cat_name)));
+  categories_[cat_name]->AddPattern(pattern);
+}
+
+bool LogChecker::TryMatchByRegex(const std::string &source)
+{
+  bool found_match = false;
   for(std::map<std::string, Category*>::iterator it = categories_.begin(); it != categories_.end(); ++it)
-    it->second->TryMatchByRegex(source);
+    found_match |= it->second->TryMatchByRegex(source);
+  return found_match;
 }
 
 void LogChecker::Compare(const LogChecker &checker)
