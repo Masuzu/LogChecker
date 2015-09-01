@@ -1,16 +1,16 @@
 <config>
     <category name="TM">
         <!-- Match PAGC : (uint) 	- (uint) 	- (double) 	- (uint) -->
-        <regex num_groups="6" value_group_idx="3" key_group_idx="1,2,5">PAGC : ([0-9]*)[^-]*- ([0-9]*)[^-]*- ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)[^-]*- ([0-9]*)</regex>
+        <pattern>PAGC : {{uint}}{{skip}}- {{uint}}{{skip}}- {{double}}{{skip}}- {{uint}}</pattern>
         <!-- Match PAOMT : (uint) - (uint) - (uint) - (uint) - (double) - (uint) -->
-        <regex num_groups="8" value_group_idx="5" key_group_idx="1,2,3,4,7">PAOMT : ([0-9]*)[^-]*- ([0-9]*)[^-]*- ([0-9]*)[^-]*- ([0-9]*)[^-]*- ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?) - ([0-9]*)</regex>
+        <pattern >PAOMT : {{uint}}{{skip}}- {{uint}}{{skip}}- {{uint}}{{skip}}- {{uint}}{{skip}}- {{double}} - {{uint}}</pattern>
     </category>
     <category name="TS VMP">
-        <!-- Match TS VMP créée :  (uint)	(double)	(uint)	(uint) -->
-        <regex num_groups="5" key_group_idx="1,2,3,4">TS VMP [^:]*:  ([0-9]*)[^[0-9]]*([0-9]*\.[0-9]*\.[0-9]*)\s([0-9]*)[^[0-9]]*([0-9]*)</regex>
+        <!-- Match TS VMP créée :  (uint)	(uint).(uint).(uint) (uint)	(uint) -->
+        <pattern>TS VMP {{skip}}:  {{uint}}{{skip_until_int}}{{uint}}.{{uint}}.{{uint}}{{skip_until_int}}{{uint}}{{skip_until_int}}{{uint}}</pattern>
     </category>
     <category name="Line result">
-        <!-- Match resultat départ (string):  P (double)MW		Q  =   (double)MVAR		S  =   (double)MVA 		I  =   (double)kA-->
-        <regex num_groups="9" value_group_idx="2,4,6,8" key_group_idx="1">resultat [^\s]* ([^:]*):[^P]*P ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)MW[^Q]*Q  =   ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)MVAR[^S]*S  =   ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)MVA[^I]*I  =   ([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)kA</regex>
+        <!-- Match resultat départ TUILERIE:  P (double)MW		Q  =   (double)MVAR		S  =   (double)MVA 		I  =   (double)kA-->
+        <pattern>resultat {{skip}} {{string}}:{{skip}}P {{double}}MW{{skip}}Q  =   {{double}}MVAR{{skip}}S  =   {{double}}MVA{{skip}}I  =   {{double}}kA</pattern>
     </category>
 </config>
