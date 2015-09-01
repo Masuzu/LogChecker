@@ -10,6 +10,7 @@ Usage: `./Logchecker <file1> <file2>`
 
 The patterns to match into categories are read from the XML file `config.xml`.
 Example:
+
 `<!-- Match PAGC : (uint) - (uint) - (double) - (uint) -->
 <pattern>PAGC : {{uint}}{{skip}}- {{uint}}{{skip}}- {{double}}{{skip}}- {{uint}}</pattern>`
 
